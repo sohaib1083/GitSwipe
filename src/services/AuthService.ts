@@ -25,8 +25,8 @@ const discovery = {
 
 export class AuthService implements AuthServiceInterface {
   private getRedirectUri(): string {
-    // Use the simplest possible redirect URI
-    return makeRedirectUri({});
+    // Always use Firebase callback URL - works for both dev and production
+    return 'https://gitswipe-87e04.firebaseapp.com/__/auth/handler';
   }
 
   useGitHubAuth() {

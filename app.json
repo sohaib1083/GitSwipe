@@ -9,12 +9,15 @@
     "newArchEnabled": true,
     "scheme": "gitswipe",
     "linking": {
-      "prefixes": ["gitswipe://", "exp://localhost:8081/"]
+      "prefixes": [
+        "gitswipe://",
+        "exp://localhost:8081/"
+      ]
     },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#f6f8fa"
     },
     "ios": {
       "supportsTablet": true,
@@ -23,7 +26,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#f6f8fa"
       },
       "package": "com.nexuslabs.gitSwipe",
       "edgeToEdgeEnabled": true,
@@ -31,6 +34,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0b08477b-7a69-4155-8167-f51347809191"
+      }
+    },
+    "owner": "sohaib1083"
   }
 }

@@ -3,6 +3,7 @@
 # Environment files
 .env
 .env.local
+google-services.json
 
 # dependencies
 node_modules/
