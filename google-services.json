@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "600124547404",
+    "project_id": "gitswipe-87e04",
+    "storage_bucket": "gitswipe-87e04.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:600124547404:android:bfdeb5ffda5e3d859aafe9",
+        "android_client_info": {
+          "package_name": "com.nexuslabs.gitSwipe"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANdor73E1DgCyTtJu2O3CL8Aqcv9c5V2s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
