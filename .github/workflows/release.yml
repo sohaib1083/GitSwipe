@@ -1,0 +1,61 @@
+name: Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: GitSwipe ${{ github.ref }}
+          body: |
+            ## 📱 GitSwipe Release
+
+            ### Download APK
+            - Download the APK file below
+            - Install on Android devices
+            - Enable "Install from Unknown Sources" in device settings
+
+            ### What's New
+            - Swipe through GitHub issues effortlessly
+            - OAuth authentication with GitHub
+            - Filter by repository, organization, assignee
+            - AI-powered issue insights with Groq
+            - Clean, intuitive mobile interface
+
+            ### Installation
+            1. Download `gitswipe-v*.apk` 
+            2. Enable unknown sources in Android settings
+            3. Install the APK
+            4. Launch and connect your GitHub account
+
+            ### System Requirements
+            - Android 5.0 (API 21) or higher
+            - Internet connection
+            - GitHub account
+
+            **Note**: This is a free distribution. For automatic updates, we're working toward Play Store release.
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./app-release.apk
+          asset_name: gitswipe-${{ github.ref_name }}.apk
+          asset_content_type: application/vnd.android.package-archive

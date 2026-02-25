@@ -1,121 +1,98 @@
-import { 
+import {
   signInWithCredential,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   User,
-  GithubAuthProvider
+  GithubAuthProvider,
 } from 'firebase/auth';
-import { 
-  makeRedirectUri, 
-  useAuthRequest,
-} from 'expo-auth-session';
+import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
+import Constants from 'expo-constants';
 import { auth } from '../../firebase.config';
-import { GITHUB_CONFIG, APP_CONFIG } from '../constants';
-import type { AuthServiceInterface, TokenResponse } from '../types';
+import { GITHUB_CONFIG } from '../constants';
+import type { AuthServiceInterface } from '../types';
 import { setGitHubAccessToken, clearGitHubAccessToken } from './GitHubService';
 import { logger } from '../utils/logger';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const discovery = {
-  authorizationEndpoint: GITHUB_CONFIG.ENDPOINTS.AUTHORIZATION,
-  tokenEndpoint: GITHUB_CONFIG.ENDPOINTS.TOKEN,
+const discovery: AuthSession.DiscoveryDocument = {
+  authorizationEndpoint: 'https://github.com/login/oauth/authorize',
+  tokenEndpoint: 'https://github.com/login/oauth/access_token',
 };
 
-export class AuthService implements AuthServiceInterface {
-  private getRedirectUri(): string {
-    // Always use Firebase callback URL - works for both dev and production
-    return 'https://gitswipe-87e04.firebaseapp.com/__/auth/handler';
-  }
+const isExpoGo = Constants.appOwnership === 'expo';
+const redirectUri = isExpoGo
+  ? AuthSession.makeRedirectUri({ path: 'auth' })
+  : 'gitswipe://auth';
 
+export class AuthService implements AuthServiceInterface {
   useGitHubAuth() {
-    const redirectUri = this.getRedirectUri();
-    logger.debug('GitHub OAuth configuration', { 
-      redirectUri,
-      environment: __DEV__ ? 'Development' : 'Production',
-      scopes: GITHUB_CONFIG.SCOPES
-    });
-    const [request, response, promptAsync] = useAuthRequest(
+    logger.debug('OAuth Config', { redirectUri, isExpoGo });
+
+    const [request, response, promptAsync] = AuthSession.useAuthRequest(
       {
         clientId: GITHUB_CONFIG.CLIENT_ID,
-        scopes: [...GITHUB_CONFIG.SCOPES],
+        scopes: ['user', 'repo'],
         redirectUri,
-        extraParams: {
-          allow_signup: 'true'
-        }
       },
-      discovery
+      discovery,
     );
-    // Return codeVerifier for PKCE
-    return { request, response, promptAsync, codeVerifier: request?.codeVerifier };
+
+    return { request, response, promptAsync };
   }
 
-  async exchangeCodeForToken(code: string, codeVerifier: string): Promise<string> {
-    try {
-      const redirectUri = this.getRedirectUri();
-      logger.info('Starting GitHub token exchange');
-      const response = await fetch(GITHUB_CONFIG.ENDPOINTS.TOKEN, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          client_id: GITHUB_CONFIG.CLIENT_ID,
-          client_secret: GITHUB_CONFIG.CLIENT_SECRET,
-          code,
-          redirect_uri: redirectUri,
-          code_verifier: codeVerifier,
-        }),
-      });
-      const data = await response.json();
-      logger.debug('GitHub token exchange response received', { hasAccessToken: !!data.access_token });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status} - ${JSON.stringify(data)}`);
-      }
-      if (!data.access_token) {
-        throw new Error('No access token in response');
-      }
-      return data.access_token;
-    } catch (error) {
-      logger.error('GitHub token exchange failed', error);
-      throw new Error(`Token exchange failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  /**
+   * Exchange authorization code for access token using PKCE.
+   * Uses AuthSession.exchangeCodeAsync which sends the code_verifier
+   * that matches the code_challenge from the auth request — this is
+   * the industry-standard OAuth 2.0 + PKCE flow for mobile apps.
+   */
+  async exchangeCodeForToken(
+    code: string,
+    request: AuthSession.AuthRequest,
+  ): Promise<string> {
+    logger.info('Exchanging code for token (PKCE)...');
+
+    const tokenResult = await AuthSession.exchangeCodeAsync(
+      {
+        clientId: GITHUB_CONFIG.CLIENT_ID,
+        clientSecret: GITHUB_CONFIG.CLIENT_SECRET,
+        code,
+        redirectUri,
+        extraParams: request.codeVerifier
+          ? { code_verifier: request.codeVerifier }
+          : {},
+      },
+      discovery,
+    );
+
+    if (!tokenResult.accessToken) {
+      throw new Error('No access token received from GitHub');
     }
+
+    logger.info('Token exchange successful');
+    return tokenResult.accessToken;
   }
 
   async signInWithGitHub(accessToken: string): Promise<User> {
-    try {
-      // Store the access token for GitHub API calls
-      setGitHubAccessToken(accessToken);
-      
-      logger.info('Signing in with GitHub credential');
-      const credential = GithubAuthProvider.credential(accessToken);
-      const result = await signInWithCredential(auth, credential);
-      
-      if (!result.user) {
-        throw new Error('No user returned from authentication');
-      }
-      
-      logger.info('Successfully signed in with GitHub', { userId: result.user.uid });
-      return result.user;
-    } catch (error) {
-      logger.error('GitHub sign-in failed', error);
-      throw new Error(`GitHub sign-in failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    logger.info('Signing in to Firebase...');
+    setGitHubAccessToken(accessToken);
+
+    const credential = GithubAuthProvider.credential(accessToken);
+    const result = await signInWithCredential(auth, credential);
+
+    if (!result.user) {
+      throw new Error('Firebase sign-in failed');
     }
+
+    logger.info('Signed in', { uid: result.user.uid });
+    return result.user;
   }
 
   async signOut(): Promise<void> {
-    try {
-      logger.info('Starting user sign out');
-      // Clear GitHub access token
-      clearGitHubAccessToken();
-      await firebaseSignOut(auth);
-      logger.info('Successfully signed out');
-    } catch (error) {
-      logger.error('Sign out failed', error);
-      throw new Error(`Sign out failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    clearGitHubAccessToken();
+    await firebaseSignOut(auth);
   }
 
   onAuthStateChanged(callback: (user: User | null) => void): () => void {

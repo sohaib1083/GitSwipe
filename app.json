@@ -30,7 +30,21 @@
       },
       "package": "com.nexuslabs.gitSwipe",
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "category": ["BROWSABLE", "DEFAULT"],
+          "data": {
+            "scheme": "gitswipe"
+          }
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

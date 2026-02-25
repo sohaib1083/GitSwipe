@@ -26,10 +26,9 @@ export interface AuthServiceInterface {
     request: any;
     response: any;
     promptAsync: (options?: any) => Promise<any>;
-    codeVerifier: string | null | undefined;
   };
   signInWithGitHub(accessToken: string): Promise<User>;
-  exchangeCodeForToken(code: string, codeVerifier: string): Promise<string>;
+  exchangeCodeForToken(code: string, request: any): Promise<string>;
   signOut(): Promise<void>;
   onAuthStateChanged(callback: (user: User | null) => void): () => void;
   getCurrentUser(): User | null;
@@ -159,6 +158,6 @@ export type RootStackParamList = {
 
 declare global {
   namespace ReactNavigation {
-    interface RootParamList extends RootStackParamList {}
+    interface RootParamList extends RootStackParamList { }
   }
 }
